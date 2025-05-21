@@ -1,7 +1,25 @@
+import { useEffect, useState } from "react";
+import Wordle from "./components/Wordle";
+
 function App() {
+
+  const [solution, setSolution] = useState(null);
+
+  useEffect(() => {
+    fetch('http://localhost:3001/solutions')
+      .then((response) => response.json())
+      .then((json) => {
+        const randomIndex = Math.floor(Math.random() * json.length);
+        const randomWord = json[randomIndex];
+        setSolution(randomWord.word);
+      })
+  }, [setSolution])
+
   return (
     <div className='App'>
       <h1>Wordle Clone</h1>
+      {solution ? <Wordle solution={solution}/> : <div>Loading...</div>}
+    
     </div>
   );
 }
