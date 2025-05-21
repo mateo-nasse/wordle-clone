@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const useWordle = (solution) => {   
     const [turn, setTurn] = useState(0) // Current turn
@@ -6,6 +6,16 @@ const useWordle = (solution) => {
     const [guesses, setGuesses] = useState([...Array(6)]) // All guesses as arrays
     const [isCorrect, setIsCorrect] = useState(false) // Is the guess correct
     const [history, setHistory] = useState([]) // History of guesses as strings
+    const [usedKeys, setUsedKeys] = useState({}) // {a: 'green', b: 'yellow', c: 'grey'}
+    const [validGuesses, setValidGuesses] = useState([]) // Valid guesses as strings
+
+    useEffect(() => {
+        fetch('http://localhost:3001/guesses')
+            .then(res => res.json())
+            .then(json => {
+                setValidGuesses(new Set(json.map(item => item.word)));
+            });
+    }, []);
 
     // Get a guess and format it into an array of letters objects
     // [{key: 'a', color: 'yellow'}]
@@ -52,6 +62,28 @@ const useWordle = (solution) => {
         setTurn(prevTurn => {
             return prevTurn + 1
         })
+        setUsedKeys((prevUsedKeys) => {
+            let newKeys = {...prevUsedKeys}
+
+            formattedGuess.forEach((letter) => {
+                const currentColor = newKeys[letter.key]
+
+                if (letter.color === "green") {
+                    newKeys[letter.key] = "green"
+                    return
+                }
+                if (letter.color === "yellow" && currentColor !== "green") {
+                    newKeys[letter.key] = "yellow"
+                    return
+                }
+                if (letter.color === "grey" && currentColor !== "green" && currentColor !== "yellow") {
+                    newKeys[letter.key] = "grey"
+                    return
+                }
+            })
+
+            return newKeys
+        })
         setCurrentGuess('')
     }
 
@@ -78,8 +110,14 @@ const useWordle = (solution) => {
                 console.log('Word already guessed')
                 return
             }
-            const formatted = formatGuess()
-            addNewGuess(formatted)
+            const isValid = validGuesses.has(currentGuess);
+            if (!isValid) {
+                console.log('Not a valid word');
+                return;
+            }
+
+            const formatted = formatGuess();
+            addNewGuess(formatted);
         }
 
         // Check if the key is a backspace
@@ -101,7 +139,8 @@ const useWordle = (solution) => {
         currentGuess,
         guesses,
         isCorrect,
-        handleKeyup
+        handleKeyup,
+        usedKeys
     }
 
 }
